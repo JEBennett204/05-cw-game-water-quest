@@ -490,10 +490,123 @@ function darkenCells(cellIndices) {
   });
 }
 
-// Initialize when DOM is ready
+// Utility: Get browser language (e.g. "en", "es", "zh", etc.)
+function getBrowserLang() {
+  const lang = (navigator.language || navigator.userLanguage || "en").split('-')[0];
+  return lang;
+}
+
+// Utility: Try to get language from user's location (GeoIP)
+// Returns a Promise that resolves to a language code or null
+async function getLangFromLocation() {
+  try {
+    // Use a free GeoIP service (ipapi.co is simple and CORS-friendly)
+    const resp = await fetch('https://ipapi.co/json/');
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    // Map country code to language (very basic, can be improved)
+    const countryLangMap = {
+      "CN": "zh", "TW": "zh", "HK": "zh",
+      "IN": "hi",
+      "ES": "es", "MX": "es", "AR": "es", "CO": "es", "PE": "es", "VE": "es", "CL": "es", "EC": "es", "GT": "es", "CU": "es", "BO": "es", "DO": "es", "HN": "es", "PY": "es", "SV": "es", "NI": "es", "CR": "es", "PA": "es", "UY": "es", "GQ": "es",
+      "FR": "fr", "BE": "fr", "CA": "fr", "CH": "fr", "LU": "fr", "MC": "fr",
+      "DE": "de", "AT": "de", "CH": "de", "LI": "de", "LU": "de",
+      "RU": "ru", "BY": "ru", "KZ": "ru", "KG": "ru",
+      "JP": "ja",
+      "IL": "he",
+      "SA": "ar", "EG": "ar", "DZ": "ar", "MA": "ar", "IQ": "ar", "SD": "ar", "YE": "ar", "SY": "ar", "JO": "ar", "LB": "ar", "LY": "ar", "PS": "ar", "KW": "ar", "OM": "ar", "QA": "ar", "BH": "ar", "TN": "ar", "AE": "ar", "MR": "ar"
+    };
+    if (data && data.country_code && countryLangMap[data.country_code]) {
+      return countryLangMap[data.country_code];
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Set language selector and i18n to the best language
+async function autoDetectLanguage() {
+  const langSelect = document.getElementById('language-select');
+  if (!langSelect) return;
+
+  // 1. Try browser language
+  let lang = getBrowserLang();
+
+  // 2. If browser language not supported, try GeoIP
+  const supported = Array.from(langSelect.options).map(opt => opt.value);
+  if (!supported.includes(lang)) {
+    lang = await getLangFromLocation() || "en";
+  }
+
+  // 3. If still not supported, fallback to English
+  if (!supported.includes(lang)) lang = "en";
+
+  // 4. Set selector and trigger change event if needed
+  if (langSelect.value !== lang) {
+    langSelect.value = lang;
+    // If your i18n system needs to be triggered:
+    if (window.i18n && typeof window.i18n.setLanguage === "function") {
+      window.i18n.setLanguage(lang);
+    } else {
+      // Or trigger change event if needed
+      langSelect.dispatchEvent(new Event('change'));
+    }
+  }
+}
+
+// Helper: update title screen text to match selected language
+async function updateTitleScreenI18n() {
+  const langSelect = document.getElementById('language-select');
+  const lang = langSelect ? langSelect.value : 'en';
+
+  // Load the language JSON dynamically if not already loaded
+  if (!window.i18n) window.i18n = {};
+  if (!window.i18n.translations) window.i18n.translations = {};
+
+  // If not loaded, fetch and cache
+  if (!window.i18n.translations[lang]) {
+    try {
+      const resp = await fetch(`languages/${lang}.json`);
+      if (resp.ok) {
+        window.i18n.translations[lang] = await resp.json();
+      }
+    } catch (e) {}
+  }
+  const dict = window.i18n.translations[lang] || window.i18n.translations['en'] || {};
+
+  // Title
+  const titleEl = document.getElementById('game-title');
+  if (titleEl && dict.main_title) titleEl.textContent = dict.main_title;
+
+  // Start button
+  const startBtn = document.getElementById('start-game');
+  if (startBtn && dict.start_game) startBtn.textContent = dict.start_game;
+
+  // Logo alt
+  const logoEl = document.getElementById('logo');
+  if (logoEl && dict.main_logo_alt) logoEl.alt = dict.main_logo_alt;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initDarkMode();
   updateStats();
+
+  // Update title screen i18n on load and on language change
+  const langSelect = document.getElementById('language-select');
+  if (langSelect) {
+    // Set selector from localStorage if present
+    const savedLang = localStorage.getItem('selectedLanguage');
+    if (savedLang && langSelect.value !== savedLang) {
+      langSelect.value = savedLang;
+    }
+    // On change, save and update
+    langSelect.addEventListener('change', () => {
+      localStorage.setItem('selectedLanguage', langSelect.value);
+      updateTitleScreenI18n();
+      // If you want a reload, uncomment:
+      // location.reload();
+    });
+    updateTitleScreenI18n();
+  }
 
   const startButton = document.getElementById('start-game');
   const titleScreen = document.getElementById('title-screen');
