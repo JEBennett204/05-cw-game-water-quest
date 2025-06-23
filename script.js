@@ -4,24 +4,16 @@ let currentCans = 0;
 let gameActive = false;
 let spawnInterval;
 let timerInterval;
-let performanceInterval;
 let timeLeft = 30;
-let spawnSpeed = 1500; // Start slower for more time to click
-let pollutedChance = 0.25; // 25% chance for polluted can
+let spawnSpeed = 1000; // Faster spawn for more cans
+let pollutedChance = 0.15; // Only 15% chance for polluted can
 let bonusAwarded = false; // Track if bonus has been awarded
 
-// Adaptive difficulty variables
-let clickHistory = []; // Track timestamps of yellow can clicks
-let pollutedClickHistory = []; // Track polluted can clicks
-let missedCans = 0; // Track cans that disappeared without being clicked
-let currentCanSpawnTime = null; // Track when current can spawned
-const MIN_SPAWN_SPEED = 600; // Fastest spawn rate
-const MAX_SPAWN_SPEED = 2500; // Slowest spawn rate
-const MIN_POLLUTED_CHANCE = 0.15; // Minimum polluted chance
-const MAX_POLLUTED_CHANCE = 0.4; // Maximum polluted chance
-let canVisibilityTime = 2500; // How long each can stays visible
-const MIN_VISIBILITY_TIME = 1500;
-const MAX_VISIBILITY_TIME = 4000;
+let lastYellowClickTimes = [];
+let consecutivePollutedClicks = 0;
+let difficultyInterval;
+
+let multiCanMode = false;
 
 const WIN_MESSAGES = [
   "Amazing! You brought clean water to a village! 💧",
@@ -39,7 +31,7 @@ const sounds = {
   hit: new Audio('audio/hit.mp3'),
   polluted: new Audio('audio/polluted.mp3'),
   win: new Audio('audio/win.mp3'),
-  lose: new Audio('audio/lose.mp3')
+  lose: new Audio('audio/loss.mp3')
 };
 
 // Confetti (use GIF as per requirements)
@@ -50,7 +42,7 @@ function showConfetti() {
   document.body.appendChild(confetti);
   setTimeout(() => confetti.remove(), 2000);
 }
-
+  
 // Show overlay at game end
 function showEndOverlay(win) {
   const overlay = document.createElement('div');
@@ -146,14 +138,30 @@ function showBonusPopup() {
 
 // Update score and timer displays
 function updateStats() {
-  // Display 0 if score is negative, otherwise show actual score
-  document.getElementById('current-cans').textContent = Math.max(0, currentCans);
-  document.getElementById('timer').textContent = timeLeft;
+  const cansElement = document.getElementById('current-cans');
+  const timerElement = document.getElementById('timer');
+  
+  if (cansElement) {
+    cansElement.textContent = Math.max(0, currentCans);
+  } else {
+    console.error('current-cans element not found');
+  }
+  
+  if (timerElement) {
+    timerElement.textContent = timeLeft;
+  } else {
+    console.error('timer element not found');
+  }
 }
 
 // Creates the 3x3 game grid where items will appear
 function createGrid() {
   const grid = document.querySelector('.game-grid');
+  if (!grid) {
+    console.error('Game grid element not found!');
+    return;
+  }
+  
   grid.innerHTML = '';
   for (let i = 0; i < 9; i++) {
     const cell = document.createElement('div');
@@ -164,100 +172,165 @@ function createGrid() {
 
 // Spawns a new item in a random grid cell
 function spawnWaterCan() {
-  if (!gameActive) return;
-  const cells = document.querySelectorAll('.grid-cell');
-  
-  // Track missed can if previous can wasn't clicked
-  if (currentCanSpawnTime && cells.some(cell => cell.innerHTML !== '')) {
-    trackMissedCan();
+  if (!gameActive) {
+    return;
   }
-  
+
+  const cells = document.querySelectorAll('.grid-cell');
+  if (cells.length === 0) {
+    return;
+  }
+
+  // Clear all cells first
   cells.forEach(cell => (cell.innerHTML = ''));
-  currentCanSpawnTime = Date.now();
 
-  // Pick random cell for yellow can
-  const yellowIdx = Math.floor(Math.random() * cells.length);
-  const pollutedIdx = Math.random() < pollutedChance
-    ? (yellowIdx + Math.floor(Math.random() * (cells.length - 1)) + 1) % cells.length
-    : -1;
+  if (!multiCanMode) {
+    // Original single-can logic
+    const yellowIdx = Math.floor(Math.random() * cells.length);
+    const pollutedIdx = Math.random() < pollutedChance
+      ? (yellowIdx + Math.floor(Math.random() * (cells.length - 1)) + 1) % cells.length
+      : -1;
 
-  cells.forEach((cell, idx) => {
-    if (idx === yellowIdx) {
+    cells.forEach((cell, idx) => {
+      if (idx === yellowIdx) {
+        // ...existing code for yellow can...
+        cell.innerHTML = `
+          <div class="water-can-wrapper">
+            <div class="water-can yellow-can"></div>
+          </div>
+        `;
+        const yellowCan = cell.querySelector('.yellow-can');
+        if (yellowCan) {
+          yellowCan.onclick = function () {
+            if (!gameActive) return;
+            currentCans++;
+            updateStats();
+            this.classList.add('can-hit');
+            setTimeout(() => this.classList.remove('can-hit'), 200);
+            cell.innerHTML = '';
+            trackYellowClick();
+            if (currentCans >= 20 && !bonusAwarded) {
+              bonusAwarded = true;
+              timeLeft += 15;
+              updateStats();
+              showBonusPopup();
+            }
+          };
+        }
+      }
+      if (idx === pollutedIdx) {
+        // ...existing code for polluted can...
+        cell.innerHTML += `
+          <div class="water-can-wrapper">
+            <div class="water-can polluted-can"></div>
+          </div>
+        `;
+        const pollutedCan = cell.querySelector('.polluted-can');
+        if (pollutedCan) {
+          pollutedCan.onclick = function () {
+            if (!gameActive) return;
+            currentCans = currentCans - 1;
+            updateStats();
+            sounds.hit.currentTime = 0; sounds.hit.play();
+            setTimeout(() => {
+              sounds.polluted.currentTime = 0; sounds.polluted.play();
+            }, 1000);
+            showWarning("Oops! That's not safe water.");
+            showPollutedPopup();
+            this.classList.add('can-polluted');
+            setTimeout(() => this.classList.remove('can-polluted'), 200);
+            cell.innerHTML = '';
+            trackPollutedClick();
+            if (currentCans < 0) {
+              setTimeout(() => {
+                endGame();
+              }, 100);
+              return;
+            }
+          };
+        }
+      }
+    });
+  } else {
+    // Multi-can mode: always 2-3 cans, at least 1 polluted
+    let canCount = Math.floor(Math.random() * 2) + 2; // 2 or 3
+    // Pick unique random indices for cans
+    let indices = Array.from({length: 9}, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    let canIndices = indices.slice(0, canCount);
+
+    // Randomly choose which of these will be polluted (at least 1)
+    let pollutedIndices = [];
+    let pollutedCount = 1 + Math.floor(Math.random() * (canCount - 1)); // at least 1, up to canCount-1
+    pollutedIndices = canIndices.slice(0, pollutedCount);
+    let yellowIndices = canIndices.slice(pollutedCount);
+
+    // Place polluted cans
+    pollutedIndices.forEach(idx => {
+      const cell = cells[idx];
+      cell.innerHTML = `
+        <div class="water-can-wrapper">
+          <div class="water-can polluted-can"></div>
+        </div>
+      `;
+      const pollutedCan = cell.querySelector('.polluted-can');
+      if (pollutedCan) {
+        pollutedCan.onclick = function () {
+          if (!gameActive) return;
+          currentCans = currentCans - 1;
+          updateStats();
+          sounds.hit.currentTime = 0; sounds.hit.play();
+          setTimeout(() => {
+            sounds.polluted.currentTime = 0; sounds.polluted.play();
+          }, 1000);
+          showWarning("Oops! That's not safe water.");
+          showPollutedPopup();
+          this.classList.add('can-polluted');
+          setTimeout(() => this.classList.remove('can-polluted'), 200);
+          cell.innerHTML = '';
+          trackPollutedClick();
+          if (currentCans < 0) {
+            setTimeout(() => {
+              endGame();
+            }, 100);
+            return;
+          }
+        };
+      }
+    });
+
+    // Place yellow cans
+    yellowIndices.forEach(idx => {
+      const cell = cells[idx];
       cell.innerHTML = `
         <div class="water-can-wrapper">
           <div class="water-can yellow-can"></div>
         </div>
       `;
-      
-      // Auto-remove can after visibility time
-      const canRemovalTimeout = setTimeout(() => {
-        if (cell.innerHTML !== '' && gameActive) {
-          trackMissedCan();
-          cell.innerHTML = '';
-        }
-      }, canVisibilityTime);
-      
-      cell.querySelector('.yellow-can').onclick = function () {
-        if (!gameActive) return;
-        clearTimeout(canRemovalTimeout);
-        currentCans++;
-        trackYellowCanClick();
-        updateStats();
-        this.classList.add('can-hit');
-        setTimeout(() => this.classList.remove('can-hit'), 200);
-        cell.innerHTML = '';
-        
-        // Check for bonus time at 20 score
-        if (currentCans >= 20 && !bonusAwarded) {
-          bonusAwarded = true;
-          timeLeft += 15;
+      const yellowCan = cell.querySelector('.yellow-can');
+      if (yellowCan) {
+        yellowCan.onclick = function () {
+          if (!gameActive) return;
+          currentCans++;
           updateStats();
-          showBonusPopup();
-        }
-      };
-    }
-    if (idx === pollutedIdx) {
-      cell.innerHTML += `
-        <div class="water-can-wrapper">
-          <div class="water-can polluted-can"></div>
-        </div>
-      `;
-      
-      // Auto-remove polluted can after visibility time
-      const pollutedRemovalTimeout = setTimeout(() => {
-        if (cell.querySelector('.polluted-can') && gameActive) {
-          cell.innerHTML = cell.innerHTML.replace(/<div class="water-can-wrapper">[\s\S]*?polluted-can[\s\S]*?<\/div>/g, '');
-        }
-      }, canVisibilityTime);
-      
-      cell.querySelector('.polluted-can').onclick = function () {
-        if (!gameActive) return;
-        clearTimeout(pollutedRemovalTimeout);
-        trackPollutedCanClick();
-        const lostPoint = currentCans >= 0;
-        currentCans = currentCans - 1;
-        updateStats();
-        
-        sounds.hit.currentTime = 0; sounds.hit.play();
-        setTimeout(() => {
-          sounds.polluted.currentTime = 0; sounds.polluted.play();
-        }, 1000);
-        
-        showWarning("Oops! That's not safe water.");
-        showPollutedPopup();
-        this.classList.add('can-polluted');
-        setTimeout(() => this.classList.remove('can-polluted'), 200);
-        cell.innerHTML = '';
-        
-        if (currentCans < 0) {
-          setTimeout(() => {
-            endGame();
-          }, 100);
-          return;
-        }
-      };
-    }
-  });
+          this.classList.add('can-hit');
+          setTimeout(() => this.classList.remove('can-hit'), 200);
+          cell.innerHTML = '';
+          trackYellowClick();
+          if (currentCans >= 20 && !bonusAwarded) {
+            bonusAwarded = true;
+            timeLeft += 15;
+            updateStats();
+            showBonusPopup();
+          }
+        };
+      }
+    });
+  }
+  applyReducedMotion();
 }
 
 // Timer logic
@@ -267,132 +340,54 @@ function startTimer() {
   timerInterval = setInterval(() => {
     timeLeft--;
     updateStats();
-    if (timeLeft === 20 || timeLeft === 10) increaseDifficulty();
     if (timeLeft <= 0) {
       endGame();
     }
   }, 1000);
 }
 
-// Adaptive difficulty functions
-function trackYellowCanClick() {
-  const now = Date.now();
-  clickHistory.push(now);
-  // Keep only last 5 clicks
-  if (clickHistory.length > 5) {
-    clickHistory.shift();
-  }
-}
-
-function trackPollutedCanClick() {
-  const now = Date.now();
-  pollutedClickHistory.push(now);
-  // Keep only last 10 seconds of polluted clicks
-  pollutedClickHistory = pollutedClickHistory.filter(time => now - time < 10000);
-}
-
-function trackMissedCan() {
-  missedCans++;
-}
-
-function evaluatePlayerPerformance() {
-  if (!gameActive) return;
-  
-  const now = Date.now();
-  const recentTime = 5000; // 5 seconds
-  
-  // Check for fast clicking (3+ clicks in 5 seconds)
-  const recentClicks = clickHistory.filter(time => now - time < recentTime);
-  const fastClicking = recentClicks.length >= 3;
-  
-  // Check for recent polluted clicks (2+ in 5 seconds)
-  const recentPollutedClicks = pollutedClickHistory.filter(time => now - time < recentTime);
-  const tooManyPollutedClicks = recentPollutedClicks.length >= 2;
-  
-  // Check for no recent activity (no clicks in 5 seconds)
-  const lastClick = clickHistory.length > 0 ? clickHistory[clickHistory.length - 1] : 0;
-  const noRecentActivity = now - lastClick > 5000 && clickHistory.length > 0;
-  
-  // Check for too many missed cans
-  const tooManyMisses = missedCans >= 3;
-  
-  // Adjust difficulty based on performance
-  if (fastClicking && !tooManyPollutedClicks) {
-    increaseDifficulty();
-  } else if (noRecentActivity || tooManyPollutedClicks || tooManyMisses) {
-    decreaseDifficulty();
-  }
-  
-  // Reset missed cans counter periodically
-  if (missedCans > 0) {
-    missedCans = Math.max(0, missedCans - 1);
-  }
-}
-
-function increaseDifficulty() {
-  // Make cans spawn faster
-  spawnSpeed = Math.max(MIN_SPAWN_SPEED, spawnSpeed - 100);
-  
-  // Make cans visible for shorter time
-  canVisibilityTime = Math.max(MIN_VISIBILITY_TIME, canVisibilityTime - 200);
-  
-  // Slightly increase polluted chance
-  pollutedChance = Math.min(MAX_POLLUTED_CHANCE, pollutedChance + 0.05);
-  
-  // Update spawn interval
-  clearInterval(spawnInterval);
-  spawnInterval = setInterval(spawnWaterCan, spawnSpeed);
-  
-  console.log(`Difficulty increased: spawn=${spawnSpeed}ms, visibility=${canVisibilityTime}ms, polluted=${pollutedChance.toFixed(2)}`);
-}
-
-function decreaseDifficulty() {
-  // Make cans spawn slower
-  spawnSpeed = Math.min(MAX_SPAWN_SPEED, spawnSpeed + 150);
-  
-  // Make cans visible for longer time
-  canVisibilityTime = Math.min(MAX_VISIBILITY_TIME, canVisibilityTime + 300);
-  
-  // Decrease polluted chance
-  pollutedChance = Math.max(MIN_POLLUTED_CHANCE, pollutedChance - 0.05);
-  
-  // Update spawn interval
-  clearInterval(spawnInterval);
-  spawnInterval = setInterval(spawnWaterCan, spawnSpeed);
-  
-  console.log(`Difficulty decreased: spawn=${spawnSpeed}ms, visibility=${canVisibilityTime}ms, polluted=${pollutedChance.toFixed(2)}`);
-}
-
-function resetDifficulty() {
-  spawnSpeed = 1500;
-  pollutedChance = 0.25;
-  canVisibilityTime = 2500;
-  clickHistory = [];
-  pollutedClickHistory = [];
-  missedCans = 0;
-  currentCanSpawnTime = null;
-}
-
 // Initializes and starts a new game
 function startGame() {
-  if (gameActive) return;
+  if (gameActive) {
+    return;
+  }
+
   gameActive = true;
   currentCans = 0;
   bonusAwarded = false;
-  resetDifficulty(); // Reset difficulty settings
+  spawnSpeed = 1000;
+  pollutedChance = 0.40;
+  multiCanMode = false;
+
   updateStats();
   createGrid();
-  document.querySelector('.game-grid').style.pointerEvents = 'auto';
-  document.getElementById('start-game').style.display = 'none';
+
+  const grid = document.querySelector('.game-grid');
+  if (grid) {
+    grid.style.pointerEvents = 'auto';
+  }
+
+  const startButton = document.getElementById('start-game');
+  if (startButton) {
+    startButton.style.display = 'none';
+  }
+
   const overlay = document.querySelector('.end-overlay');
   if (overlay) overlay.remove();
-  
-  // Start game intervals
+
+  const gameTitle = document.getElementById('game-title');
+  if (gameTitle) {
+    gameTitle.classList.add('no-blur');
+  }
+
   spawnInterval = setInterval(spawnWaterCan, spawnSpeed);
   startTimer();
-  
-  // Start performance evaluation interval
-  performanceInterval = setInterval(evaluatePlayerPerformance, 3000); // Every 3 seconds
+  difficultyInterval = setInterval(evaluatePlayerPerformance, 3000);
+
+  // After 10 seconds, enable multi-can mode
+  setTimeout(() => {
+    multiCanMode = true;
+  }, 10000);
 }
 
 // Ends the game, stopping all actions and showing the end overlay
@@ -400,11 +395,21 @@ function endGame() {
   gameActive = false;
   clearInterval(spawnInterval);
   clearInterval(timerInterval);
-  clearInterval(performanceInterval); // Stop performance evaluation
-  document.querySelector('.game-grid').style.pointerEvents = 'none';
-  document.getElementById('start-game').style.display = 'block';
+  clearInterval(difficultyInterval);
+  
+  const grid = document.querySelector('.game-grid');
+  if (grid) {
+    grid.style.pointerEvents = 'none';
+  }
+  
+  const startButton = document.getElementById('start-game');
+  if (startButton) {
+    startButton.style.display = 'block';
+  }
+  
   const displayScore = Math.max(0, currentCans);
   const isWin = displayScore >= GOAL_CANS;
+  
   if (!isWin) {
     sounds.lose.play();
   }
@@ -415,19 +420,28 @@ function endGame() {
 function resetGame() {
   const overlay = document.querySelector('.end-overlay');
   if (overlay) overlay.remove();
+
   currentCans = 0;
   timeLeft = 30;
   bonusAwarded = false;
-  resetDifficulty(); // Reset difficulty when resetting game
+  gameActive = false;
+  clearInterval(difficultyInterval);
+  difficultyInterval = null;
+  lastYellowClickTimes = [];
+  consecutivePollutedClicks = 0;
+
   updateStats();
   createGrid();
-  document.querySelector('.game-grid').style.pointerEvents = 'auto';
-  document.getElementById('start-game').style.display = 'block';
+  startGame();  // Skip intro; just restart game
 }
 
 // Dark mode toggle functionality
 function initDarkMode() {
   const darkModeToggle = document.getElementById('dark-mode-toggle');
+  if (!darkModeToggle) {
+    return;
+  }
+  
   const body = document.body;
   
   const isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -453,19 +467,115 @@ function initDarkMode() {
   setTimeout(updateToggleText, 100);
 }
 
-// Initialize dark mode on page load
+// Animation for startup sequence
+async function startupAnimation() {
+  await darkenCells([0, 2]);
+  await darkenCells([4]);
+  await darkenCells([6, 8]);
+  const startBtn = document.getElementById('start-game');
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.classList.add('show-start');
+  }
+}
+
+function darkenCells(cellIndices) {
+  return new Promise((resolve) => {
+    const cells = document.querySelectorAll('.grid-cell');
+    cellIndices.forEach(i => cells[i]?.classList.add('darken'));
+    setTimeout(() => {
+      cellIndices.forEach(i => cells[i]?.classList.remove('darken'));
+      resolve();
+    }, 500);
+  });
+}
+
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   initDarkMode();
+  updateStats();
+
+  const startButton = document.getElementById('start-game');
+  const titleScreen = document.getElementById('title-screen');
+  const gameContainer = document.querySelector('.game-container');
+  const gameGrid = document.querySelector('.game-grid');
+
+  if (startButton && titleScreen && gameContainer && gameGrid) {
+    startButton.addEventListener('click', async () => {
+      // Fade out title screen
+      titleScreen.classList.add('fade-out');
+      await new Promise(res => setTimeout(res, 800));
+      titleScreen.remove();
+
+      // Reveal game container and scroll to it
+      gameContainer.classList.remove('d-none');
+      gameContainer.scrollIntoView({ behavior: 'smooth' });
+
+      // Tic Tac Toe animation
+      await animateGridIntro([0, 2]);
+      await animateGridIntro([4]);
+      await animateGridIntro([6, 8]);
+
+      // Wait 2s, then start game
+      setTimeout(() => {
+        startGame();
+      }, 2000);
+    });
+  } else {
+    console.error('Start button or title screen not found!');
+  }
 });
 
-// Set up click handler for the start button
-document.getElementById('start-game').addEventListener('click', startGame);
+// Respect prefers-reduced-motion for can animations
+function applyReducedMotion() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.water-can').forEach((can) => {
+      can.style.animation = 'none';
+      can.style.transition = 'none';
+    });
+  }
+}
 
-// Initial setup
-createGrid();
-updateStats();
-document.getElementById('start-game').addEventListener('click', startGame);
+// Animation for grid introduction
+async function animateGridIntro(cellIndices) {
+  return new Promise((resolve) => {
+    const cells = document.querySelectorAll('.grid-cell');
+    cellIndices.forEach(i => {
+      const cell = cells[i];
+      if (cell) {
+        cell.classList.add('animate-intro');
+        setTimeout(() => {
+          cell.classList.remove('animate-intro');
+        }, 700);
+      }
+    });
+    setTimeout(resolve, 700);
+  });
+}
 
-// Initial setup
-createGrid();
-updateStats();
+// Darkens cells in Tic Tac Toe sequence
+(async function() {
+  await darkenCells([0, 2]);
+  await darkenCells([4]);
+  await darkenCells([6, 8]);
+})();
+
+const bigStartBtn = document.getElementById('big-start-game');
+if (bigStartBtn) {
+  bigStartBtn.addEventListener('click', async () => {
+    document.querySelector('.game-container').classList.remove('d-none');
+    createGrid();
+    await startupAnimation();
+    startGame();
+  });
+}
+
+// Respect prefers-reduced-motion for can animations
+function applyReducedMotion() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.water-can').forEach((can) => {
+      can.style.animation = 'none';
+      can.style.transition = 'none';
+    });
+  }
+}

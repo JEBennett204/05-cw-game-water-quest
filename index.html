@@ -4,15 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="page_title">Water Quest</title>
+  <!-- Provide meta description -->
+  <meta name="description" content="Water Quest: A Clean Water Awareness Game">
   <!-- Bootstrap 5 CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet" type="text/css" />
 </head>
-<body style="background: linear-gradient(135deg, #FFD200 0%, #00ADEF 50%, #7ED957 100%); min-height: 100vh;">
-  <div class="container-fluid">
+<body class="d-flex flex-column min-vh-100">
+  <!-- Skip link for screen readers and keyboard users -->
+  <a href="#main-content" class="visually-hidden focusable" data-i18n="skip_to_content">Skip to main content</a>
+  
+  <!-- Make sure only one start button exists and the logo path is correct -->
+  <div id="title-screen" class="d-flex flex-column align-items-center justify-content-center vh-100">
+    <img src="img/cw_logo_horizontal.png" id="logo" alt="charity: water logo" />
+    <h1 id="game-title" class="mt-3">Water Quest</h1>
+    <button id="start-game" class="btn btn-lg btn-warning mt-4">Start Game</button>
+  </div>
+
+  <main id="main-content" class="container-fluid flex-fill" aria-label="Game Area" role="main">
     <div class="row justify-content-center">
       <div class="col-12 col-lg-8 col-xl-6">
-        <div class="game-container">
+        <div class="game-container d-none">
           <!-- Dark Mode Toggle -->
           <div class="d-flex justify-content-end mb-3">
             <button id="dark-mode-toggle" class="btn btn-outline-secondary btn-sm">
@@ -20,31 +32,27 @@
             </button>
           </div>
           
-          <h1 class="text-center fw-bold fs-2 mb-4">
-            <img src="img/cw_logo.png" alt="charity: water" class="logo-img me-3">
+          <h1 class="text-center fw-bold fs-2 mb-4" role="heading" aria-level="1">
+            <img src="img/cw_logo.png" alt="charity: water Logo" class="logo-img me-3">
             <span data-i18n="game_title">Water Quest</span>
           </h1>
           
           <p class="game-instructions text-center fs-5 mb-4" data-i18n="game_instructions">Collect 20 items to complete the game!</p>
           
-          <div class="stats d-flex justify-content-around mb-4 p-3 rounded">
+          <div class="stats d-flex justify-content-around mb-4 p-3 rounded" aria-live="polite">
             <p class="mb-0 fw-bold fs-5"><span data-i18n="cans_collected">Cans Collected</span>: <span id="current-cans">0</span></p>
             <p class="mb-0 fw-bold fs-5"><span data-i18n="time_left">Time Left</span>: <span id="timer">30</span>s</p>
           </div>
           
-          <div id="achievements" class="achievement"></div>
+          <!-- Ensure game grid is properly structured -->
           <div class="game-grid mb-4"></div>
-          
-          <div class="text-center">
-            <button id="start-game" class="btn btn-warning btn-lg px-4 py-2 fw-bold" data-i18n="start_button">Start Game</button>
-          </div>
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <!-- Language Selector -->
-  <div class="language-selector">
+  <div class="language-selector" role="navigation">
     <label for="language-select" data-i18n="language_selector">Language</label>
     <select id="language-select" class="form-select">
       <option value="en">English</option>
@@ -60,7 +68,7 @@
     </select>
   </div>
   
-  <!-- Bootstrap JS -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="i18n.js"></script>
   <script src="script.js"></script>

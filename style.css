@@ -1,4 +1,4 @@
-/* Charity: water Brand Colors & Fonts (Brand Usage Guide)
+/* Charity: water Brand Colors & Fonts (Brand Usage Guide) */
 :root {
   --yellow: #FFD200;   /* Jerry Can Yellow */
   --black: #333333;    /* Ink Black */
@@ -7,9 +7,11 @@
   --green: #7ED957;    /* Spring Green */
   --red: #D9534F;      /* Clay Red */
 }
+ 
 
-/* ...existing code... */
+/* No changes needed */
 
+/* Global styles */
 * {
   box-sizing: border-box;
 }
@@ -17,28 +19,28 @@
 body {
   font-family: Arial, sans-serif;
   margin: 0;
-  padding: 0; /* Remove fixed padding */
-  /* Full-screen gradient background using charity: water brand colors */
-  /* Jerry Can Yellow (#FFD200), Sky Blue (#00ADEF), Spring Green (#7ED957) */
-  background: #FFD200 !important; /* Fallback for older browsers */
-  background: linear-gradient(135deg, 
-    var(--yellow) 0%, 
-    var(--blue) 50%, 
-    var(--green) 100%) !important;
+  padding: 0;
+  background: none !important;
+  position: relative;
   min-height: 100vh !important;
-  display: flex; /* Use flexbox for centering */
-  align-items: center;
-  justify-content: center;
   color: var(--black);
 }
 
+html, body {
+  /* Remove background here to avoid conflicts */
+  /* background: radial-gradient(circle at top, var(--yellow), var(--blue), var(--green)) no-repeat fixed !important; */
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 html {
-  /* Also apply gradient to html element for full coverage */
-  background: #FFD200;
+  /* Remove background here to avoid conflicts */
+  /* background: #FFD200;
   background: linear-gradient(135deg, 
     #FFD200 0%, 
     #00ADEF 50%, 
-    #7ED957 100%);
+    #7ED957 100%); */
   min-height: 100%;
 }
 
@@ -168,15 +170,15 @@ h1 img {
 /* Brand yellow used for jerry can pop effect */
 .water-can.yellow-can {
   background-color: var(--yellow);
-  border: 3px solid var(--yellow);
-  box-shadow: 0 0 10px #FFD20088;
+  border: 5px solid var(--yellow);
+  box-shadow: 0 0 15px #FFD20088;
 }
 
 /* Brand red used for polluted can (obstacle) */
 .water-can.polluted-can {
   background-color: var(--red);
-  border: 3px solid var(--red);
-  box-shadow: 0 0 10px #D9534F88;
+  border: 5px solid var(--red);
+  box-shadow: 0 0 15px #D9534F88;
   /* No filter per brand guide: never apply filters to imagery */
   /* Instead, use a red border and background for clarity */
 }
@@ -585,8 +587,16 @@ body.dark-mode {
 }
 
 body.dark-mode .game-container {
-  background-color: rgba(33, 37, 41, 0.95) !important;
+  /* Make the box dimmer while keeping text readable */
+  background-color: rgba(33, 37, 41, 0.8) !important;
   color: #fff !important;
+}
+
+body.dark-mode h1,
+body.dark-mode h1 .logo-img {
+  /* Keep Water Quest title/logo color the same in dark mode */
+  color: var(--black) !important;
+  filter: none !important;
 }
 
 body.dark-mode .stats {
@@ -599,6 +609,15 @@ body.dark-mode .grid-cell {
 
 body.dark-mode .game-instructions {
   color: #adb5bd !important;
+}
+
+body.dark-mode h1 {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #495057 !important;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
 }
 
 /* Responsive container */
@@ -797,3 +816,76 @@ h1 {
     max-width: 550px;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.grid-cell.darken {
+  background-color: rgba(0, 0, 0, 0.2);
+  transition: background-color 0.4s ease;
+}
+
+#start-game {
+  background-color: var(--yellow) !important;
+  color: var(--black) !important;
+  border: none;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transition: 
+    opacity 0.6s ease,
+    background 0.2s,
+    color 0.2s,
+    transform 0.18s cubic-bezier(.4,1.5,.5,1.1);
+  margin-top: 2rem;
+  display: block;
+  z-index: 11;
+  position: relative;
+  box-shadow: 0 2px 8px #FFD20022;
+}
+
+#start-game:hover, #start-game:focus {
+  background-color: var(--yellow) !important;
+  color: var(--black) !important;
+  transform: scale(1.06);
+  box-shadow: 0 4px 18px #FFD20055;
+}
+
+#intro-container {
+  transition: transform 0.8s ease;
+  z-index: 10;
+  position: relative;
+  background: transparent;
+}
+
+/* Fade out and move up for intro logo and title */
+.intro-fade-out {
+  opacity: 0;
+  transform: translateY(-60px);
+  transition: opacity 0.5s cubic-bezier(.4,1.5,.5,1.1), transform 0.7s cubic-bezier(.4,1.5,.5,1.1);
+  pointer-events: none;
+}
+
+#title-screen.fade-out {
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.game-container.centered-after-intro {
+  margin-top: 6vh !important;
+  margin-bottom: 0 !important;
+  transition: margin-top 0.7s cubic-bezier(.4,1.5,.5,1.1);
+  /* Center vertically if needed */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Remove or comment out these if present:
+// .show-start { opacity: 1; pointer-events: auto; }
+// #start-game { opacity: 0; pointer-events: none; ...
