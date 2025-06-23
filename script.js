@@ -4,10 +4,25 @@ let currentCans = 0;
 let gameActive = false;
 let spawnInterval;
 let timerInterval;
+let performanceInterval;
 let timeLeft = 30;
 let spawnSpeed = 1500; // Start slower for more time to click
 let pollutedChance = 0.25; // 25% chance for polluted can
 let bonusAwarded = false; // Track if bonus has been awarded
+
+// Adaptive difficulty variables
+let clickHistory = []; // Track timestamps of yellow can clicks
+let pollutedClickHistory = []; // Track polluted can clicks
+let missedCans = 0; // Track cans that disappeared without being clicked
+let currentCanSpawnTime = null; // Track when current can spawned
+const MIN_SPAWN_SPEED = 600; // Fastest spawn rate
+const MAX_SPAWN_SPEED = 2500; // Slowest spawn rate
+const MIN_POLLUTED_CHANCE = 0.15; // Minimum polluted chance
+const MAX_POLLUTED_CHANCE = 0.4; // Maximum polluted chance
+let canVisibilityTime = 2500; // How long each can stays visible
+const MIN_VISIBILITY_TIME = 1500;
+const MAX_VISIBILITY_TIME = 4000;
+
 const WIN_MESSAGES = [
   "Amazing! You brought clean water to a village! 💧",
   "You did it! Every can counts. 🌟",
@@ -92,6 +107,22 @@ function showPollutedPopup() {
   }, 2000);
 }
 
+// Show warning for polluted can
+function showWarning(msg) {
+  let warn = document.getElementById('polluted-warning');
+  if (!warn) {
+    warn = document.createElement('div');
+    warn.id = 'polluted-warning';
+    warn.className = 'polluted-warning';
+    document.body.appendChild(warn);
+  }
+  
+  const warningText = window.i18n ? window.i18n.translate('polluted_warning', msg) : msg;
+  warn.textContent = warningText;
+  warn.style.display = 'block';
+  setTimeout(() => { warn.style.display = 'none'; }, 1000);
+}
+
 // Show bonus popup
 function showBonusPopup() {
   const popup = document.createElement('div');
@@ -135,7 +166,14 @@ function createGrid() {
 function spawnWaterCan() {
   if (!gameActive) return;
   const cells = document.querySelectorAll('.grid-cell');
+  
+  // Track missed can if previous can wasn't clicked
+  if (currentCanSpawnTime && cells.some(cell => cell.innerHTML !== '')) {
+    trackMissedCan();
+  }
+  
   cells.forEach(cell => (cell.innerHTML = ''));
+  currentCanSpawnTime = Date.now();
 
   // Pick random cell for yellow can
   const yellowIdx = Math.floor(Math.random() * cells.length);
@@ -150,11 +188,21 @@ function spawnWaterCan() {
           <div class="water-can yellow-can"></div>
         </div>
       `;
+      
+      // Auto-remove can after visibility time
+      const canRemovalTimeout = setTimeout(() => {
+        if (cell.innerHTML !== '' && gameActive) {
+          trackMissedCan();
+          cell.innerHTML = '';
+        }
+      }, canVisibilityTime);
+      
       cell.querySelector('.yellow-can').onclick = function () {
         if (!gameActive) return;
+        clearTimeout(canRemovalTimeout);
         currentCans++;
+        trackYellowCanClick();
         updateStats();
-        // Removed hit sound - yellow cans should be silent
         this.classList.add('can-hit');
         setTimeout(() => this.classList.remove('can-hit'), 200);
         cell.innerHTML = '';
@@ -162,7 +210,7 @@ function spawnWaterCan() {
         // Check for bonus time at 20 score
         if (currentCans >= 20 && !bonusAwarded) {
           bonusAwarded = true;
-          timeLeft += 15; // Add 15 seconds
+          timeLeft += 15;
           updateStats();
           showBonusPopup();
         }
@@ -174,29 +222,37 @@ function spawnWaterCan() {
           <div class="water-can polluted-can"></div>
         </div>
       `;
+      
+      // Auto-remove polluted can after visibility time
+      const pollutedRemovalTimeout = setTimeout(() => {
+        if (cell.querySelector('.polluted-can') && gameActive) {
+          cell.innerHTML = cell.innerHTML.replace(/<div class="water-can-wrapper">[\s\S]*?polluted-can[\s\S]*?<\/div>/g, '');
+        }
+      }, canVisibilityTime);
+      
       cell.querySelector('.polluted-can').onclick = function () {
         if (!gameActive) return;
-        const lostPoint = currentCans >= 0; // Always subtract if game is active
-        currentCans = currentCans - 1; // Allow going negative
+        clearTimeout(pollutedRemovalTimeout);
+        trackPollutedCanClick();
+        const lostPoint = currentCans >= 0;
+        currentCans = currentCans - 1;
         updateStats();
         
-        // Always play hit.mp3 first, then polluted.mp3 after 1 second
         sounds.hit.currentTime = 0; sounds.hit.play();
         setTimeout(() => {
           sounds.polluted.currentTime = 0; sounds.polluted.play();
         }, 1000);
         
         showWarning("Oops! That's not safe water.");
-        showPollutedPopup(); // Show the popup
+        showPollutedPopup();
         this.classList.add('can-polluted');
         setTimeout(() => this.classList.remove('can-polluted'), 200);
         cell.innerHTML = '';
         
-        // Check if score went negative and end game immediately
         if (currentCans < 0) {
           setTimeout(() => {
-            endGame(); // End game instantly if score goes below 0
-          }, 100); // Small delay to allow visual feedback
+            endGame();
+          }, 100);
           return;
         }
       };
@@ -218,11 +274,103 @@ function startTimer() {
   }, 1000);
 }
 
-// Increase difficulty by speeding up spawn
+// Adaptive difficulty functions
+function trackYellowCanClick() {
+  const now = Date.now();
+  clickHistory.push(now);
+  // Keep only last 5 clicks
+  if (clickHistory.length > 5) {
+    clickHistory.shift();
+  }
+}
+
+function trackPollutedCanClick() {
+  const now = Date.now();
+  pollutedClickHistory.push(now);
+  // Keep only last 10 seconds of polluted clicks
+  pollutedClickHistory = pollutedClickHistory.filter(time => now - time < 10000);
+}
+
+function trackMissedCan() {
+  missedCans++;
+}
+
+function evaluatePlayerPerformance() {
+  if (!gameActive) return;
+  
+  const now = Date.now();
+  const recentTime = 5000; // 5 seconds
+  
+  // Check for fast clicking (3+ clicks in 5 seconds)
+  const recentClicks = clickHistory.filter(time => now - time < recentTime);
+  const fastClicking = recentClicks.length >= 3;
+  
+  // Check for recent polluted clicks (2+ in 5 seconds)
+  const recentPollutedClicks = pollutedClickHistory.filter(time => now - time < recentTime);
+  const tooManyPollutedClicks = recentPollutedClicks.length >= 2;
+  
+  // Check for no recent activity (no clicks in 5 seconds)
+  const lastClick = clickHistory.length > 0 ? clickHistory[clickHistory.length - 1] : 0;
+  const noRecentActivity = now - lastClick > 5000 && clickHistory.length > 0;
+  
+  // Check for too many missed cans
+  const tooManyMisses = missedCans >= 3;
+  
+  // Adjust difficulty based on performance
+  if (fastClicking && !tooManyPollutedClicks) {
+    increaseDifficulty();
+  } else if (noRecentActivity || tooManyPollutedClicks || tooManyMisses) {
+    decreaseDifficulty();
+  }
+  
+  // Reset missed cans counter periodically
+  if (missedCans > 0) {
+    missedCans = Math.max(0, missedCans - 1);
+  }
+}
+
 function increaseDifficulty() {
-  spawnSpeed = Math.max(700, spawnSpeed - 300);
+  // Make cans spawn faster
+  spawnSpeed = Math.max(MIN_SPAWN_SPEED, spawnSpeed - 100);
+  
+  // Make cans visible for shorter time
+  canVisibilityTime = Math.max(MIN_VISIBILITY_TIME, canVisibilityTime - 200);
+  
+  // Slightly increase polluted chance
+  pollutedChance = Math.min(MAX_POLLUTED_CHANCE, pollutedChance + 0.05);
+  
+  // Update spawn interval
   clearInterval(spawnInterval);
   spawnInterval = setInterval(spawnWaterCan, spawnSpeed);
+  
+  console.log(`Difficulty increased: spawn=${spawnSpeed}ms, visibility=${canVisibilityTime}ms, polluted=${pollutedChance.toFixed(2)}`);
+}
+
+function decreaseDifficulty() {
+  // Make cans spawn slower
+  spawnSpeed = Math.min(MAX_SPAWN_SPEED, spawnSpeed + 150);
+  
+  // Make cans visible for longer time
+  canVisibilityTime = Math.min(MAX_VISIBILITY_TIME, canVisibilityTime + 300);
+  
+  // Decrease polluted chance
+  pollutedChance = Math.max(MIN_POLLUTED_CHANCE, pollutedChance - 0.05);
+  
+  // Update spawn interval
+  clearInterval(spawnInterval);
+  spawnInterval = setInterval(spawnWaterCan, spawnSpeed);
+  
+  console.log(`Difficulty decreased: spawn=${spawnSpeed}ms, visibility=${canVisibilityTime}ms, polluted=${pollutedChance.toFixed(2)}`);
+}
+
+function resetDifficulty() {
+  spawnSpeed = 1500;
+  pollutedChance = 0.25;
+  canVisibilityTime = 2500;
+  clickHistory = [];
+  pollutedClickHistory = [];
+  missedCans = 0;
+  currentCanSpawnTime = null;
 }
 
 // Initializes and starts a new game
@@ -230,16 +378,21 @@ function startGame() {
   if (gameActive) return;
   gameActive = true;
   currentCans = 0;
-  bonusAwarded = false; // Reset bonus flag
-  spawnSpeed = 1500;
+  bonusAwarded = false;
+  resetDifficulty(); // Reset difficulty settings
   updateStats();
   createGrid();
   document.querySelector('.game-grid').style.pointerEvents = 'auto';
   document.getElementById('start-game').style.display = 'none';
   const overlay = document.querySelector('.end-overlay');
   if (overlay) overlay.remove();
+  
+  // Start game intervals
   spawnInterval = setInterval(spawnWaterCan, spawnSpeed);
   startTimer();
+  
+  // Start performance evaluation interval
+  performanceInterval = setInterval(evaluatePlayerPerformance, 3000); // Every 3 seconds
 }
 
 // Ends the game, stopping all actions and showing the end overlay
@@ -247,14 +400,13 @@ function endGame() {
   gameActive = false;
   clearInterval(spawnInterval);
   clearInterval(timerInterval);
+  clearInterval(performanceInterval); // Stop performance evaluation
   document.querySelector('.game-grid').style.pointerEvents = 'none';
-  document.getElementById('start-game').style.display = 'block'; // Show start button again
-  // Use Math.max to ensure displayed final score is never negative
+  document.getElementById('start-game').style.display = 'block';
   const displayScore = Math.max(0, currentCans);
   const isWin = displayScore >= GOAL_CANS;
-  // Player wins only if they have 20+ points at the end of the game
   if (!isWin) {
-    sounds.lose.play(); // Play loss.mp3 when game is lost
+    sounds.lose.play();
   }
   showEndOverlay(isWin);
 }
@@ -265,11 +417,12 @@ function resetGame() {
   if (overlay) overlay.remove();
   currentCans = 0;
   timeLeft = 30;
-  spawnSpeed = 1500;
+  bonusAwarded = false;
+  resetDifficulty(); // Reset difficulty when resetting game
   updateStats();
   createGrid();
   document.querySelector('.game-grid').style.pointerEvents = 'auto';
-  document.getElementById('start-game').style.display = 'block'; // Show start button
+  document.getElementById('start-game').style.display = 'block';
 }
 
 // Dark mode toggle functionality
