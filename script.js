@@ -42,7 +42,7 @@ function showConfetti() {
   document.body.appendChild(confetti);
   setTimeout(() => confetti.remove(), 2000);
 }
-  
+
 // Show overlay at game end
 function showEndOverlay(win) {
   const overlay = document.createElement('div');
@@ -382,12 +382,24 @@ function startGame() {
 
   spawnInterval = setInterval(spawnWaterCan, spawnSpeed);
   startTimer();
-  difficultyInterval = setInterval(evaluatePlayerPerformance, 3000);
-
+  
   // After 10 seconds, enable multi-can mode
   setTimeout(() => {
     multiCanMode = true;
   }, 10000);
+}
+
+// Define missing functions to prevent errors
+function trackYellowClick() {
+  // Track yellow clicks (placeholder)
+}
+
+function trackPollutedClick() {
+  // Track polluted clicks (placeholder)
+}
+
+function evaluatePlayerPerformance() {
+  // Performance evaluation logic (placeholder)
 }
 
 // Ends the game, stopping all actions and showing the end overlay
@@ -441,116 +453,36 @@ function initDarkMode() {
   if (!darkModeToggle) {
     return;
   }
-  
+
   const body = document.body;
-  
+
   const isDarkMode = localStorage.getItem('darkMode') === 'true';
   if (isDarkMode) {
     body.classList.add('dark-mode');
+    updateToggleText();
   }
-  
-  // Update toggle text with translation
+
   function updateToggleText() {
-    if (window.i18n) {
-      window.i18n.updateDarkModeToggle();
+    if (window.i18n && window.i18n.translate) {
+      darkModeToggle.innerHTML = body.classList.contains('dark-mode')
+        ? '☀️ ' + window.i18n.translate('light_mode', 'Light Mode')
+        : '🌙 ' + window.i18n.translate('dark_mode', 'Dark Mode');
+    } else {
+      darkModeToggle.innerHTML = body.classList.contains('dark-mode')
+        ? '☀️ Light Mode'
+        : '🌙 Dark Mode';
     }
   }
-  
+
   darkModeToggle.addEventListener('click', () => {
     body.classList.toggle('dark-mode');
     const isDark = body.classList.contains('dark-mode');
     localStorage.setItem('darkMode', isDark);
     updateToggleText();
   });
-  
+
   // Initial update
   setTimeout(updateToggleText, 100);
-}
-
-// Animation for startup sequence
-async function startupAnimation() {
-  await darkenCells([0, 2]);
-  await darkenCells([4]);
-  await darkenCells([6, 8]);
-  const startBtn = document.getElementById('start-game');
-  if (startBtn) {
-    startBtn.disabled = false;
-    startBtn.classList.add('show-start');
-  }
-}
-
-function darkenCells(cellIndices) {
-  return new Promise((resolve) => {
-    const cells = document.querySelectorAll('.grid-cell');
-    cellIndices.forEach(i => cells[i]?.classList.add('darken'));
-    setTimeout(() => {
-      cellIndices.forEach(i => cells[i]?.classList.remove('darken'));
-      resolve();
-    }, 500);
-  });
-}
-
-// Utility: Get browser language (e.g. "en", "es", "zh", etc.)
-function getBrowserLang() {
-  const lang = (navigator.language || navigator.userLanguage || "en").split('-')[0];
-  return lang;
-}
-
-// Utility: Try to get language from user's location (GeoIP)
-// Returns a Promise that resolves to a language code or null
-async function getLangFromLocation() {
-  try {
-    // Use a free GeoIP service (ipapi.co is simple and CORS-friendly)
-    const resp = await fetch('https://ipapi.co/json/');
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    // Map country code to language (very basic, can be improved)
-    const countryLangMap = {
-      "CN": "zh", "TW": "zh", "HK": "zh",
-      "IN": "hi",
-      "ES": "es", "MX": "es", "AR": "es", "CO": "es", "PE": "es", "VE": "es", "CL": "es", "EC": "es", "GT": "es", "CU": "es", "BO": "es", "DO": "es", "HN": "es", "PY": "es", "SV": "es", "NI": "es", "CR": "es", "PA": "es", "UY": "es", "GQ": "es",
-      "FR": "fr", "BE": "fr", "CA": "fr", "CH": "fr", "LU": "fr", "MC": "fr",
-      "DE": "de", "AT": "de", "CH": "de", "LI": "de", "LU": "de",
-      "RU": "ru", "BY": "ru", "KZ": "ru", "KG": "ru",
-      "JP": "ja",
-      "IL": "he",
-      "SA": "ar", "EG": "ar", "DZ": "ar", "MA": "ar", "IQ": "ar", "SD": "ar", "YE": "ar", "SY": "ar", "JO": "ar", "LB": "ar", "LY": "ar", "PS": "ar", "KW": "ar", "OM": "ar", "QA": "ar", "BH": "ar", "TN": "ar", "AE": "ar", "MR": "ar"
-    };
-    if (data && data.country_code && countryLangMap[data.country_code]) {
-      return countryLangMap[data.country_code];
-    }
-  } catch (e) {}
-  return null;
-}
-
-// Set language selector and i18n to the best language
-async function autoDetectLanguage() {
-  const langSelect = document.getElementById('language-select');
-  if (!langSelect) return;
-
-  // 1. Try browser language
-  let lang = getBrowserLang();
-
-  // 2. If browser language not supported, try GeoIP
-  const supported = Array.from(langSelect.options).map(opt => opt.value);
-  if (!supported.includes(lang)) {
-    lang = await getLangFromLocation() || "en";
-  }
-
-  // 3. If still not supported, fallback to English
-  if (!supported.includes(lang)) lang = "en";
-
-  // 4. Set selector and trigger change event if needed
-  if (langSelect.value !== lang) {
-    langSelect.value = lang;
-    // If your i18n system needs to be triggered:
-    if (window.i18n && typeof window.i18n.setLanguage === "function") {
-      window.i18n.setLanguage(lang);
-    } else {
-      // Or trigger change event if needed
-      langSelect.dispatchEvent(new Event('change'));
-    }
-  }
 }
 
 // Helper: update title screen text to match selected language
@@ -586,7 +518,19 @@ async function updateTitleScreenI18n() {
   if (logoEl && dict.main_logo_alt) logoEl.alt = dict.main_logo_alt;
 }
 
+// Respect prefers-reduced-motion for can animations
+function applyReducedMotion() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.water-can').forEach((can) => {
+      can.style.animation = 'none';
+      can.style.transition = 'none';
+    });
+  }
+}
+
+// Single DOMContentLoaded event
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM fully loaded');
   initDarkMode();
   updateStats();
 
@@ -602,93 +546,81 @@ document.addEventListener('DOMContentLoaded', () => {
     langSelect.addEventListener('change', () => {
       localStorage.setItem('selectedLanguage', langSelect.value);
       updateTitleScreenI18n();
-      // If you want a reload, uncomment:
-      // location.reload();
     });
     updateTitleScreenI18n();
   }
 
+  // Setup start button event listener
   const startButton = document.getElementById('start-game');
   const titleScreen = document.getElementById('title-screen');
   const gameContainer = document.querySelector('.game-container');
   const gameGrid = document.querySelector('.game-grid');
 
+  console.log('Elements check:', { 
+    startButton: !!startButton, 
+    titleScreen: !!titleScreen, 
+    gameContainer: !!gameContainer, 
+    gameGrid: !!gameGrid 
+  });
+
   if (startButton && titleScreen && gameContainer && gameGrid) {
-    startButton.addEventListener('click', async () => {
+    console.log('Start button found, adding click listener');
+    startButton.onclick = function() {
+      console.log('Start button clicked!');
       // Fade out title screen
       titleScreen.classList.add('fade-out');
-      await new Promise(res => setTimeout(res, 800));
-      titleScreen.remove();
-
-      // Reveal game container and scroll to it
-      gameContainer.classList.remove('d-none');
-      gameContainer.scrollIntoView({ behavior: 'smooth' });
-
-      // Tic Tac Toe animation
-      await animateGridIntro([0, 2]);
-      await animateGridIntro([4]);
-      await animateGridIntro([6, 8]);
-
-      // Wait 2s, then start game
       setTimeout(() => {
+        titleScreen.remove();
+
+        // Reveal game container and scroll to it
+        gameContainer.classList.remove('d-none');
+        gameContainer.scrollIntoView({ behavior: 'smooth' });
+
+        // Ensure grid is created before starting the game
+        createGrid();
+
+        // Start game immediately
         startGame();
-      }, 2000);
-    });
+      }, 800);
+    };
   } else {
     console.error('Start button or title screen not found!');
   }
+
+  // Set up big start button if it exists
+  const bigStartBtn = document.getElementById('big-start-game');
+  if (bigStartBtn) {
+    bigStartBtn.addEventListener('click', () => {
+      document.querySelector('.game-container').classList.remove('d-none');
+      createGrid();
+      startGame();
+    });
+  }
 });
 
-// Respect prefers-reduced-motion for can animations
-function applyReducedMotion() {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    document.querySelectorAll('.water-can').forEach((can) => {
-      can.style.animation = 'none';
-      can.style.transition = 'none';
-    });
-  }
-}
+// Add this to ensure dark mode button text is updated when language changes
+document.addEventListener('DOMContentLoaded', () => {
+  // ...existing code...
 
-// Animation for grid introduction
-async function animateGridIntro(cellIndices) {
-  return new Promise((resolve) => {
-    const cells = document.querySelectorAll('.grid-cell');
-    cellIndices.forEach(i => {
-      const cell = cells[i];
-      if (cell) {
-        cell.classList.add('animate-intro');
-        setTimeout(() => {
-          cell.classList.remove('animate-intro');
-        }, 700);
+  // Update dark mode toggle when language changes
+  const langSelect = document.getElementById('language-select');
+  if (langSelect) {
+    langSelect.addEventListener('change', () => {
+      // ...existing code...
+      
+      // Update the dark mode toggle text with new language
+      const darkModeToggle = document.getElementById('dark-mode-toggle');
+      if (darkModeToggle) {
+        const body = document.body;
+        const isDark = body.classList.contains('dark-mode');
+        if (window.i18n && window.i18n.translate) {
+          darkModeToggle.innerHTML = isDark
+            ? '☀️ ' + window.i18n.translate('light_mode', 'Light Mode')
+            : '🌙 ' + window.i18n.translate('dark_mode', 'Dark Mode');
+        }
       }
     });
-    setTimeout(resolve, 700);
-  });
-}
-
-// Darkens cells in Tic Tac Toe sequence
-(async function() {
-  await darkenCells([0, 2]);
-  await darkenCells([4]);
-  await darkenCells([6, 8]);
-})();
-
-const bigStartBtn = document.getElementById('big-start-game');
-if (bigStartBtn) {
-  bigStartBtn.addEventListener('click', async () => {
-    document.querySelector('.game-container').classList.remove('d-none');
-    createGrid();
-    await startupAnimation();
-    startGame();
-  });
-}
-
-// Respect prefers-reduced-motion for can animations
-function applyReducedMotion() {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    document.querySelectorAll('.water-can').forEach((can) => {
-      can.style.animation = 'none';
-      can.style.transition = 'none';
-    });
   }
-}
+
+  // ...existing code...
+});
