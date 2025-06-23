@@ -1,0 +1,31 @@
+{
+  "page_title": "Wasser Mission",
+  "game_title": "Wasser Mission",
+  "game_instructions": "Sammle 20 Gegenstände, um das Spiel zu beenden!",
+  "start_button": "Spiel Starten",
+  "reset_button": "Spiel Zurücksetzen",
+  "dark_mode": "Dunkler Modus",
+  "light_mode": "Heller Modus",
+  "cans_collected": "Kanister Gesammelt",
+  "time_left": "Verbleibende Zeit",
+  "final_score": "Endpunktzahl",
+  "win_title": "Du Hast Gewonnen!",
+  "lose_title": "Spiel Beendet",
+  "bonus_title": "Bonus!",
+  "bonus_message": "+15 Sekunden hinzugefügt!",
+  "polluted_title": "Ups!",
+  "polluted_message": "Dieser Kanister war verschmutzt!",
+  "polluted_warning": "Ups! Das ist kein sicheres Wasser.",
+  "ok_button": "OK",
+  "language_selector": "Sprache",
+  "win_messages": [
+    "Fantastisch! Du hast sauberes Wasser in ein Dorf gebracht! 💧",
+    "Du hast es geschafft! Jeder Kanister zählt. 🌟",
+    "Sieg! Sauberes Wasser für alle! 🎉"
+  ],
+  "lose_messages": [
+    "Weiter versuchen! Jeder Kanister hilft. 💪",
+    "Fast geschafft! Versuche es nochmal für sauberes Wasser. 🚰",
+    "Gib nicht auf! Wasser ist Leben. 🌍"
+  ]
+}

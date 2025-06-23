@@ -1,0 +1,31 @@
+{
+  "page_title": "ウォータークエスト",
+  "game_title": "ウォータークエスト",
+  "game_instructions": "ゲームをクリアするために20個のアイテムを集めよう！",
+  "start_button": "ゲーム開始",
+  "reset_button": "ゲームリセット",
+  "dark_mode": "ダークモード",
+  "light_mode": "ライトモード",
+  "cans_collected": "缶の収集数",
+  "time_left": "残り時間",
+  "final_score": "最終スコア",
+  "win_title": "勝利！",
+  "lose_title": "ゲームオーバー",
+  "bonus_title": "ボーナス！",
+  "bonus_message": "+15秒追加されました！",
+  "polluted_title": "しまった！",
+  "polluted_message": "その缶は汚染されていました！",
+  "polluted_warning": "しまった！それは安全な水ではありません。",
+  "ok_button": "OK",
+  "language_selector": "言語",
+  "win_messages": [
+    "素晴らしい！村にきれいな水をもたらしました！💧",
+    "やりました！すべての缶が大切です。🌟",
+    "勝利！みんなにきれいな水を！🎉"
+  ],
+  "lose_messages": [
+    "頑張り続けて！すべての缶が役に立ちます。💪",
+    "もう少しでした！きれいな水のためにもう一度挑戦しましょう。🚰",
+    "諦めないで！水は命です。🌍"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "page_title": "Misión del Agua",
+  "game_title": "Misión del Agua",
+  "game_instructions": "¡Recolecta 20 elementos para completar el juego!",
+  "start_button": "Iniciar Juego",
+  "reset_button": "Reiniciar Juego",
+  "dark_mode": "Modo Oscuro",
+  "light_mode": "Modo Claro",
+  "cans_collected": "Bidones Recolectados",
+  "time_left": "Tiempo Restante",
+  "final_score": "Puntuación Final",
+  "win_title": "¡Has Ganado!",
+  "lose_title": "Juego Terminado",
+  "bonus_title": "¡Bonificación!",
+  "bonus_message": "¡+15 segundos añadidos!",
+  "polluted_title": "¡Ups!",
+  "polluted_message": "¡Ese bidón estaba contaminado!",
+  "polluted_warning": "¡Ups! Esa no es agua segura.",
+  "ok_button": "OK",
+  "language_selector": "Idioma",
+  "win_messages": [
+    "¡Increíble! ¡Trajiste agua limpia a una aldea! 💧",
+    "¡Lo lograste! Cada bidón cuenta. 🌟",
+    "¡Victoria! ¡Agua limpia para todos! 🎉"
+  ],
+  "lose_messages": [
+    "¡Sigue intentando! Cada bidón ayuda. 💪",
+    "¡Casi lo logras! Intenta de nuevo por agua limpia. 🚰",
+    "¡No te rindas! El agua es vida. 🌍"
+  ]
+}

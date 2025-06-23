@@ -1,0 +1,31 @@
+{
+  "page_title": "משימת המים",
+  "game_title": "משימת המים",
+  "game_instructions": "אספו 20 פריטים כדי להשלים את המשחק!",
+  "start_button": "התחל משחק",
+  "reset_button": "אפס משחק",
+  "dark_mode": "מצב כהה",
+  "light_mode": "מצב בהיר",
+  "cans_collected": "פחים שנאספו",
+  "time_left": "זמן שנותר",
+  "final_score": "ניקוד סופי",
+  "win_title": "ניצחת!",
+  "lose_title": "המשחק הסתיים",
+  "bonus_title": "בונוס!",
+  "bonus_message": "+15 שניות נוספו!",
+  "polluted_title": "אופס!",
+  "polluted_message": "הפח הזה היה מזוהם!",
+  "polluted_warning": "אופס! אלו לא מים בטוחים.",
+  "ok_button": "אישור",
+  "language_selector": "שפה",
+  "win_messages": [
+    "מדהים! הבאת מים נקיים לכפר! 💧",
+    "עשית את זה! כל פח חשוב. 🌟",
+    "ניצחון! מים נקיים לכולם! 🎉"
+  ],
+  "lose_messages": [
+    "המשך לנסות! כל פח עוזר. 💪",
+    "כמעט הגעת! נסה שוב למען מים נקיים. 🚰",
+    "אל תוותר! מים זה חיים. 🌍"
+  ]
+}

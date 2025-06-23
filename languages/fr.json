@@ -1,0 +1,31 @@
+{
+  "page_title": "Mission Eau",
+  "game_title": "Mission Eau",
+  "game_instructions": "Collectez 20 éléments pour terminer le jeu !",
+  "start_button": "Commencer le Jeu",
+  "reset_button": "Redémarrer le Jeu",
+  "dark_mode": "Mode Sombre",
+  "light_mode": "Mode Clair",
+  "cans_collected": "Bidons Collectés",
+  "time_left": "Temps Restant",
+  "final_score": "Score Final",
+  "win_title": "Vous Avez Gagné !",
+  "lose_title": "Jeu Terminé",
+  "bonus_title": "Bonus !",
+  "bonus_message": "+15 secondes ajoutées !",
+  "polluted_title": "Oups !",
+  "polluted_message": "Ce bidon était pollué !",
+  "polluted_warning": "Oups ! Ce n'est pas de l'eau potable.",
+  "ok_button": "OK",
+  "language_selector": "Langue",
+  "win_messages": [
+    "Incroyable ! Vous avez apporté de l'eau propre à un village ! 💧",
+    "Vous l'avez fait ! Chaque bidon compte. 🌟",
+    "Victoire ! De l'eau propre pour tous ! 🎉"
+  ],
+  "lose_messages": [
+    "Continuez à essayer ! Chaque bidon aide. 💪",
+    "Presque réussi ! Essayez encore pour l'eau propre. 🚰",
+    "N'abandonnez pas ! L'eau c'est la vie. 🌍"
+  ]
+}

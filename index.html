@@ -1,23 +1,68 @@
 <!DOCTYPE html>
-<html>
+<html style="background: linear-gradient(135deg, #FFD200 0%, #00ADEF 50%, #7ED957 100%); min-height: 100%;">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Water Quest</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="page_title">Water Quest</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet" type="text/css" />
 </head>
-<body>
-  <div class="container">
-    <h1>Water Quest</h1>
-    <p class="game-instructions">Collect 20 items to complete the game!</p>
-    <div class="stats">
-      <p>Cans Collected: <span id="current-cans">0</span></p>
-      <p>Time Left: <span id="timer">30</span>s</p>
+<body style="background: linear-gradient(135deg, #FFD200 0%, #00ADEF 50%, #7ED957 100%); min-height: 100vh;">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-8 col-xl-6">
+        <div class="game-container">
+          <!-- Dark Mode Toggle -->
+          <div class="d-flex justify-content-end mb-3">
+            <button id="dark-mode-toggle" class="btn btn-outline-secondary btn-sm">
+              🌙 <span data-i18n="dark_mode">Dark Mode</span>
+            </button>
+          </div>
+          
+          <h1 class="text-center fw-bold fs-2 mb-4">
+            <img src="img/cw_logo.png" alt="charity: water" class="logo-img me-3">
+            <span data-i18n="game_title">Water Quest</span>
+          </h1>
+          
+          <p class="game-instructions text-center fs-5 mb-4" data-i18n="game_instructions">Collect 20 items to complete the game!</p>
+          
+          <div class="stats d-flex justify-content-around mb-4 p-3 rounded">
+            <p class="mb-0 fw-bold fs-5"><span data-i18n="cans_collected">Cans Collected</span>: <span id="current-cans">0</span></p>
+            <p class="mb-0 fw-bold fs-5"><span data-i18n="time_left">Time Left</span>: <span id="timer">30</span>s</p>
+          </div>
+          
+          <div id="achievements" class="achievement"></div>
+          <div class="game-grid mb-4"></div>
+          
+          <div class="text-center">
+            <button id="start-game" class="btn btn-warning btn-lg px-4 py-2 fw-bold" data-i18n="start_button">Start Game</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div id="achievements" class="achievement"></div>
-    <div class="game-grid"></div>
-    <button id="start-game">Start Game</button>
   </div>
+
+  <!-- Language Selector -->
+  <div class="language-selector">
+    <label for="language-select" data-i18n="language_selector">Language</label>
+    <select id="language-select" class="form-select">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="hi">हिन्दी</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="ar">العربية</option>
+      <option value="he">עברית</option>
+      <option value="de">Deutsch</option>
+      <option value="ru">Русский</option>
+      <option value="ja">日本語</option>
+    </select>
+  </div>
+  
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="i18n.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

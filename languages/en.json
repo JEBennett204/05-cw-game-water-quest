@@ -1,0 +1,31 @@
+{
+  "page_title": "Water Quest",
+  "game_title": "Water Quest",
+  "game_instructions": "Collect 20 items to complete the game!",
+  "start_button": "Start Game",
+  "reset_button": "Reset Game",
+  "dark_mode": "Dark Mode",
+  "light_mode": "Light Mode",
+  "cans_collected": "Cans Collected",
+  "time_left": "Time Left",
+  "final_score": "Final Score",
+  "win_title": "You Win!",
+  "lose_title": "Game Over",
+  "bonus_title": "Bonus!",
+  "bonus_message": "+15 seconds added!",
+  "polluted_title": "Whoops!",
+  "polluted_message": "That can was polluted!",
+  "polluted_warning": "Oops! That's not safe water.",
+  "ok_button": "OK",
+  "language_selector": "Language",
+  "win_messages": [
+    "Amazing! You brought clean water to a village! 💧",
+    "You did it! Every can counts. 🌟",
+    "Victory! Clean water for all! 🎉"
+  ],
+  "lose_messages": [
+    "Keep trying! Every can helps. 💪",
+    "Almost there! Try again for clean water. 🚰",
+    "Don't give up! Water is life. 🌍"
+  ]
+}
